@@ -2,4 +2,9 @@
 	path = xen
 	url = git@github.com:nks5295/xen.git
 	branch = stable-4.7
-    ignore = dirty
+	ignore = dirty
+[submodule "libbdvmi"]
+	path = libbdvmi
+	url = git@github.com:nks5295/libbdvmi.git
+	branch = master
+	ignore = dirty
