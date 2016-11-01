@@ -1,0 +1,5 @@
+[submodule "xen"]
+	path = xen
+	url = git@github.com:nks5295/xen.git
+	branch = stable-4.7
+    ignore = dirty
