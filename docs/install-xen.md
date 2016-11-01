@@ -34,7 +34,7 @@ sudo apt-get install wget git bcc bin86 gawk bridge-utils iproute libcurl3 libcu
 git clone https://github.com/gw-cs-sd/sd-2017-rack-scale-vms.git
 cd sd-2017-rack-scale-vms
 git submodule update --init
-cd xen
+cd deps/xen-drakvuf
 ./configure --enable-githttp
 make -j4 dist-xen
 make -j4 dist-tools
