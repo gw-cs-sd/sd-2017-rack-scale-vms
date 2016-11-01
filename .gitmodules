@@ -1,10 +1,10 @@
 [submodule "xen"]
-	path = xen
+	path = deps/xen
 	url = git@github.com:nks5295/xen.git
 	branch = stable-4.7
 	ignore = dirty
 [submodule "libbdvmi"]
-	path = libbdvmi
+	path = deps/libbdvmi
 	url = git@github.com:nks5295/libbdvmi.git
 	branch = master
 	ignore = dirty
