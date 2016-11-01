@@ -1,0 +1,20 @@
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# The primary network interface
+
+#auto em1
+iface em1 inet manual
+
+auto xenbr0
+iface xenbr0 inet dhcp
+        bridge_ports em1
+
+auto p2p1
+iface p2p1 inet static
+        address 10.0.0.19
+        netmask 255.0.0.0
