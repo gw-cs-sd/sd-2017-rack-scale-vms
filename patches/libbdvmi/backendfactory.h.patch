@@ -1,0 +1,13 @@
+diff --git a/include/bdvmi/backendfactory.h b/include/bdvmi/backendfactory.h
+index 8f0d933..19d77e9 100644
+--- a/include/bdvmi/backendfactory.h
++++ b/include/bdvmi/backendfactory.h
+@@ -36,7 +36,7 @@ public:
+ public:
+ 	DomainWatcher *domainWatcher();
+ 
+-	Driver *driver( const std::string &domain, bool watchableOnly = true );
++	Driver *driver( const std::string &domain, bool watchableOnly = true , bool useAltP2m = false );
+ 
+ 	EventManager *eventManager( Driver &driver, unsigned short handlerFlags );
+ 
