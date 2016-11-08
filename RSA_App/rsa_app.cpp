@@ -16,6 +16,7 @@
 #include <bdvmi/backendfactory.h>
 #include <bdvmi/domainhandler.h>
 #include <bdvmi/domainwatcher.h>
+#include <bdvmi/driver.h>
 #include <bdvmi/eventhandler.h>
 #include <bdvmi/eventmanager.h>
 #include <bdvmi/loghelper.h>
@@ -23,6 +24,7 @@
 #include <memory>
 #include <signal.h>
 #include <sstream>
+#include <unistd.h>
 
 #define DEBUG 1
 
@@ -76,23 +78,51 @@ private:
 class RSAEventHandler : public bdvmi::EventHandler {
 
 public:
+    // Callback for CR write events
+	virtual void handleCR( unsigned short /* vcpu */, unsigned short crNumber, const bdvmi::Registers & /* regs */,
+	                       uint64_t /* oldValue */, uint64_t newValue, bdvmi::HVAction & /* hvAction */ )
+	{
+		cout << "CR" << crNumber << " event, newValue: 0x" << hex << newValue << endl;
+	}
 
+	// Callback for writes in MSR addresses
+	virtual void handleMSR( unsigned short /* vcpu */, uint32_t msr, uint64_t /* oldValue */, uint64_t newValue,
+	                        bdvmi::HVAction & /* hvAction */ )
+	{
+		cout << "MSR " << msr << " event, newValue: 0x" << hex << newValue << endl;
+	}
 	// Callback for page faults
 	virtual void handlePageFault( unsigned short vcpu, const bdvmi::Registers & /* regs */,
 	                              uint64_t physAddress, uint64_t virtAddress, bool /* read */,
 	                              bool /* write */, bool /* execute */, bdvmi::HVAction & /* action */,
-	                              uint8_t * /* data */, uint32_t & /* size */,
+	                              uint8_t * data, uint32_t & size,
 	                              unsigned short & /* instructionLength */ )
 	{
 		cout << "Page fault event on VCPU: " << vcpu << endl;
-		cout << "\tPhysAddress: " << hex << physAddress << endl;
-		cout << "\tVirtAddress: " << hex << virtAddress << endl;
+		cout << "\tPhysAddress: " << physAddress << endl;
+		cout << "\tVirtAddress: " << virtAddress << endl;
+		cout << "\tData: " << data << endl;
+		cout << "\tSize: " << size << endl;
 	}
 
 	virtual void handleVMCALL( unsigned short vcpu, const bdvmi::Registers & /* regs */, uint64_t /* rip */,
 	                           uint64_t eax )
 	{
 		cout << "VMCALL event on VCPU " << vcpu << ", EAX: 0x" << hex << eax << endl;
+	}
+
+    virtual void handleXSETBV( unsigned short vcpu, uint64_t ecx )
+	{
+		cout << "XSETBV event on VCPU " << vcpu << ", ECX: 0x" << hex << ecx << endl;
+	}
+
+	// Reserved (currently not in use)
+	virtual bool handleBreakpoint( unsigned short vcpu, uint64_t gpa )
+	{
+		cout << "INT3 (breakpoint) event on VCPU " << vcpu << ", gpa: " << hex << showbase << gpa << endl;
+
+		// Did not do anything about the breakpoint, so reinject it.
+		return false;
 	}
 
 	virtual void handleSessionOver( bool /* domainStillRunning */ )
@@ -147,47 +177,55 @@ public:
 private:
 	void hookDomain( const string &domain )
 	{
-		auto_ptr<bdvmi::Driver> pd( bf_.driver( domain ) );
+		auto_ptr<bdvmi::Driver> pd( bf_.driver( domain, false, false ) );
 		auto_ptr<bdvmi::EventManager> em( bf_.eventManager( *pd, bdvmi::EventManager::ENABLE_MEMORY ) );
 
+        bool r = true, w = false, x = true;
         unsigned long long start;
 
         cout << "Input start: ";
-        cin >> hex >> start;
+        cin >> start;
 
 #ifdef DEBUG
-        unsigned long gfn = ( (unsigned long)(start >> 12) );
-        cout << "gfn: " << gfn << endl;
-        cout << "gfn hex: " << hex << gfn << endl;
+        {
+            bool r2, w2, x2;
+            unsigned long gfn = ( (unsigned long)(start >> 12) );
 
-        bool r = false, w = false, x = false;
+            cout << "gfn: " << gfn << endl;
+            cout << "gfn hex: " << hex << gfn << endl;
 
-        if (r) cout << "r true" << endl;
-        if (w) cout << "w true" << endl;
-        if (x) cout << "x true" << endl;
+            cout << "desired page access rights" << endl;
 
-        cout << "getting page protection" << endl;
+            cout << ((!r) ? "1 r false" : "1 r true") << endl;
+            cout << ((!w) ? "1 w false" : "1 w true") << endl;
+            cout << ((!x) ? "1 x false" : "1 x true") << endl;
 
-        pd->getPageProtection( start, r, w, x  );
+            cout << "getting page protection before set" << endl;
 
-        if (r) cout << "r true" << endl;
-        if (w) cout << "w true" << endl;
-        if (x) cout << "x true" << endl;
+            pd->getPageProtection( start, r2, w2, x2  );
+
+            cout << ((!r2) ? "1 r false" : "1 r true") << endl;
+            cout << ((!w2) ? "1 w false" : "1 w true") << endl;
+            cout << ((!x2) ? "1 x false" : "1 x true") << endl;
+        }
 #endif
 
         cout << "setting page protection" << endl;
 
-        for (int i = 0; i < 4000; i++)
-        {
-            pd->setPageProtection( (start+i), false, false, false );
-        }
+        // function spec: setPageProtection( gfn, read, write, exec );
+        pd->setPageProtection( start, r, w, x );
 
 #ifdef DEBUG
-        pd->getPageProtection( start, r, w, x  );
+        {
+            bool r2, w2, x2;
 
-        if (r) cout << "r true" << endl;
-        if (w) cout << "w true" << endl;
-        if (x) cout << "x true" << endl;
+            cout << "getting page protection after set" << endl;
+            pd->getPageProtection( start, r2, w2, x2  );
+
+            cout << ((!r2) ? "1 r false" : "1 r true") << endl;
+            cout << ((!w2) ? "1 w false" : "1 w true") << endl;
+            cout << ((!x2) ? "1 x false" : "1 x true") << endl;
+        }
 #endif
 
 		RSAEventHandler reh;
