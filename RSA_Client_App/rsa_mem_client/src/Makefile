@@ -1,7 +1,7 @@
-IDIR = ../include
 CC = gcc
 CFLAGS = -g -I$(IDIR)
-ODIR=obj
+IDIR = ../include
+ODIR = ../build
 
 _DEPS = includes.h defines.h structs.h prototypes.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
@@ -17,10 +17,10 @@ all: rsa_mem_client
 rebuild: clean all
 
 rsa_mem_client: $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $(ODIR)/$@ $^
 
 .PHONY: clean
 
 clean:
-	rm -f rsa_mem_client $(OBJ)
+	rm -f rsa_mem_client $(OBJ) $(ODIR)/*
 
