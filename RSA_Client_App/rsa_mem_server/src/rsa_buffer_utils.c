@@ -15,6 +15,19 @@ rsa_buffer_can_read_from_buffer(
     size_t              szDataLen
     );
 
+static
+int
+rsa_is_big_endian(
+    void
+    );
+
+static
+int
+rsa_ntohll(
+    PBYTE   pNetData,
+    PBYTE   pHostData
+    );
+
 
 int
 rsa_buffer_init_buffer(
@@ -104,7 +117,11 @@ rsa_buffer_serialize_uint64(
 
     punCursor = (uint64_t *)(pByteStream->pBuffer + pByteStream->szWriteCur);
 
-    unHtoNsData = htons(unData);
+    rc = rsa_ntohll(
+            (PBYTE)&unData,
+            (PBYTE)&unHtoNsData
+            );
+    BAIL_ERROR(rc);
 
     if (!memcpy(
             (void *)punCursor,
@@ -157,8 +174,8 @@ rsa_buffer_deserialize_uint64(
     punCursor = (uint64_t *)(pByteStream->pBuffer + pByteStream->szReadCur);
 
     if (!memcpy(
-            (void *)punCursor,
             (void *)&uNsToHData,
+            (void *)punCursor,
             sizeof(uint64_t)))
     {
         rc = COM_ERROR;
@@ -168,7 +185,11 @@ rsa_buffer_deserialize_uint64(
 
     pByteStream->szReadCur += sizeof(uint64_t);
 
-    unData = ntohs(uNsToHData);
+    rc = rsa_ntohll(
+            (PBYTE)&uNsToHData,
+            (PBYTE)&unData
+            );
+    BAIL_ERROR(rc);
 
     *punData = unData;
 
@@ -282,4 +303,68 @@ rsa_buffer_can_read_from_buffer(
     )
 {
     return ((pByteStream->szReadCur + szDataLen) <= pByteStream->szMaxSize);
+}
+
+static
+int
+rsa_is_big_endian(
+    void
+    )
+{
+    union {
+        uint32_t    unData;
+        char        cData[4];
+    } EndianDetect = {0x01020304};
+
+
+    return EndianDetect.cData[0] == 1;
+}
+
+static
+int
+rsa_ntohll(
+    PBYTE   pIn,
+    PBYTE   pOut
+    )
+{
+    int rc = NO_ERROR;
+    size_t szSize = sizeof(uint64_t);
+    unsigned uInIdx = 0;
+    unsigned uOutIdx = 0;
+
+    if (!pIn || !pOut)
+    {
+        rc = ARG_ERROR;
+        BAIL_ERROR(rc);
+    }
+
+    if (!rsa_is_big_endian())
+    {
+        for (uInIdx = szSize; uOutIdx < szSize && uInIdx--; ++uOutIdx)
+        {
+            pOut[uOutIdx] = pIn[uInIdx];
+        }
+    }
+    else
+    {
+        if (!memcpy(
+                pOut,
+                pIn,
+                szSize))
+        {
+            rc = COM_ERROR;
+            printf("ERROR: memcpy rsa_ntohll\n");
+            BAIL_ERROR(rc);
+        }
+    }
+
+
+cleanup:
+
+    return rc;
+
+error:
+
+    goto cleanup;
+
 }
