@@ -1,8 +1,3 @@
-[submodule "deps/xen-drakvuf"]
-	path = deps/xen-drakvuf
-	url = git@github.com:nks5295/xen-drakvuf.git
-	branch = drakvuf
-	ignore = dirty
 [submodule "deps/libvmi"]
 	path = deps/libvmi
 	url = git@github.com:nks5295/libvmi
