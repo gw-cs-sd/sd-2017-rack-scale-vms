@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stddef.h>
+#include <assert.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <pthread.h>
@@ -88,15 +89,15 @@ int main (int argc, char **argv)
         goto cleanup_error;
     }
 
-    if (posix_memalign(&pages, PAGESIZE, PAGESIZE * 2) != 0) {
-    //pages = malloc(PAGESIZE * 2);
+    if (posix_memalign(&pages, pagesize, pagesize * 2) != 0) {
+    //pages = malloc(pagesize * 2);
     //if (pages == NULL) {
         fprintf(stderr, "ERROR: posix_memalign, gonna perror\n");
         perror("ERROR: posix_memalign\n");
     }
     assert(pages);
 
-    if (mprotect(pages, PAGESIZE * 2, PROT_READ | PROT_WRITE) != 0) {
+    if (mprotect(pages, pagesize * 2, PROT_READ | PROT_WRITE) != 0) {
         fprintf(stderr, "ERROR: mprotect, gonna perror\n");
         perror("ERROR: mprotect\n");
     }
