@@ -18,7 +18,7 @@
 #include <poll.h>
 #include <sys/syscall.h>
 
-#include "../../RSApi/includes.h"
+#include "../RSApi/includes.h"
 
 #define NUM_PAGES 2
 #define DEBUG 1
