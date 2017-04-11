@@ -1,6 +1,0 @@
-[submodule "deps/xen"]
-	path = deps/xen
-	url = https://github.com/nks5295/xen.git
-[submodule "deps/libvmi"]
-	path = deps/libvmi
-	url = https://github.com/nks5295/libvmi.git
