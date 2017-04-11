@@ -14,10 +14,14 @@
 #include <sys/ioctl.h>
 #include <pthread.h>
 #include <fcntl.h>
+#include <linux/userfaultfd.h>
+#include <poll.h>
+#include <sys/syscall.h>
+
+#include "../../RSApi/includes.h"
 
 #define NUM_PAGES 2
 #define DEBUG 1
-#define _MALLOC_
 
 #define DEBUG_PRINT(_str, ...)                                  \
     do {                                                        \
@@ -50,18 +54,31 @@
 
 unsigned long pagesize;
 
+int userfaultfd(int flags)
+{
+	return syscall(SYS_userfaultfd, flags);
+}
+
 void *touch_memory(void *memory)
 {
-    fprintf(stdout, "-- page1: %p - %s\n", memory, (char *)memory);
-    fprintf(stdout, "-- page2: %p - %s\n", memory+pagesize, (char *)(memory+pagesize));
+    int i = 0;
+    for (; i < 2; ++i) {
+        fprintf(stdout, "-- page1: %p - %s\n", memory, (char *)memory);
+        fprintf(stdout, "-- page2: %p - %s\n", memory+pagesize, (char *)(memory+pagesize));
+    }
 
     return NULL;
 }
+
+#define pagesize 4096
 
 int main (int argc, char **argv)
 {
     int return_code = 0;
     pid_t pid = 0;
+    int fd = 0;
+
+    char data[pagesize] = "pthread touched page, so handler put this there";
 
     pid = getpid();
     if (pid < 0) {
@@ -71,27 +88,31 @@ int main (int argc, char **argv)
 
     fprintf(stdout, "INFO: my pid = %d\n", pid);
 
-    pagesize = sysconf(_SC_PAGESIZE);
-
-#ifdef _MALLOC_
-    void *pages2 = malloc(pagesize);
-    if (pages2 == NULL) {
-        return -1;
+    if ((fd = userfaultfd(O_NONBLOCK)) == -1) {
+        fprintf(stderr, "userfaultfd failed: %m\n");
     }
 
-    fprintf(stdout, "INFO: Page mallocd at addr: %p\n", pages2);
-#endif
+    struct uffdio_api api =
+        {
+            .api = UFFD_API
+        };
+    if (ioctl(fd, UFFDIO_API, &api)) {
+        fprintf(stderr, "ioctl failed: %m\n");
+    }
+
+    if (api.api != UFFD_API) {
+		fprintf(stderr, "++ unexepcted UFFD api version.\n");
+		goto cleanup_error;
+	}
 
     void *pages = NULL;
-    if ((pages = mmap(NULL, pagesize * NUM_PAGES, PROT_READ | PROT_WRITE,
-              MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)) == MAP_FAILED) {
-        fprintf(stderr, "ERROR: mmap failed: %m\n");
-        goto cleanup_error;
-    }
+    //if ((pages = mmap(NULL, pagesize * NUM_PAGES, PROT_READ | PROT_WRITE,
+    //          MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)) == MAP_FAILED) {
+    //    fprintf(stderr, "ERROR: mmap failed: %m\n");
+    //    goto cleanup_error;
+    //}
 
     if (posix_memalign(&pages, pagesize, pagesize * 2) != 0) {
-    //pages = malloc(pagesize * 2);
-    //if (pages == NULL) {
         fprintf(stderr, "ERROR: posix_memalign, gonna perror\n");
         perror("ERROR: posix_memalign\n");
     }
@@ -104,29 +125,85 @@ int main (int argc, char **argv)
 
     fprintf(stdout, "INFO: %d Pages allocated: %p and %p\n", NUM_PAGES, pages, pages+pagesize);
 
-    if (!sprintf((char *)pages, "neel shah touched page 1")) {
-        fprintf(stderr, "ERROR: sprintf failed %m\n");
-        goto cleanup_error;
-    }
-
-    if (!sprintf((char *)(pages + pagesize), "neel shah touched page 2")) {
-        fprintf(stderr, "ERROR: sprintf failed %m\n");
-        goto cleanup_error;
-    }
-
-    DEBUG_PRINT("page1 contents: %s\n", (char *)pages);
-    DEBUG_PRINT("page2 contents: %s\n", (char *)(pages + pagesize));
+    struct uffdio_register reg =
+        {
+            .mode = UFFDIO_REGISTER_MODE_MISSING,
+            .range =
+                {
+                    .start = (long) pages,
+                    .len = pagesize * 2
+                }
+	    };
+	if (ioctl(fd, UFFDIO_REGISTER,  &reg)) {
+		fprintf(stderr, "++ ioctl(fd, UFFDIO_REGISTER, ...) failed: %m\n");
+		goto cleanup_error;
+	}
+	if (reg.ioctls != UFFD_API_RANGE_IOCTLS) {
+		fprintf(stderr, "++ unexpected UFFD ioctls.\n");
+		goto cleanup_error;
+	}
 
     DEBUG_PAUSE();
-
-#ifdef _MALLOC_
-    free(pages2);
-#endif
 
     pthread_t thread = {0};
     if (pthread_create(&thread, NULL, touch_memory, pages)) {
         fprintf(stderr, "ERROR: pthread_create failed: %m\n");
         goto cleanup_error;
+    }
+
+    /**** Handler ****/
+
+    struct pollfd evt =
+        {
+            .fd = fd,
+            .events = POLLIN
+        };
+
+	while (poll(&evt, 1, 10) > 0) {
+		/* unexpected poll events */
+		if (evt.revents & POLLERR) {
+			fprintf(stderr, "++ POLLERR\n");
+			goto cleanup_error;
+		} else if (evt.revents & POLLHUP) {
+			fprintf(stderr, "++ POLLHUP\n");
+			goto cleanup_error;
+		}
+		struct uffd_msg fault_msg = {0};
+		if (read(fd, &fault_msg, sizeof(fault_msg)) != sizeof(fault_msg)) {
+			fprintf(stderr, "++ read failed: %m\n");
+			goto cleanup_error;
+		}
+		char *place = (char *)fault_msg.arg.pagefault.address;
+		if (fault_msg.event != UFFD_EVENT_PAGEFAULT
+		    || (place != pages && place != pages + pagesize)) {
+			fprintf(stderr, "unexpected pagefault?.\n");
+			goto cleanup_error;
+		}
+
+        int er = 0;
+        pRSA_Mem_Data fault = { 0 };
+        pRSA_Mem_Data recvd = { 0 };
+        er = rsa_init_mem_data(
+                    (unsigned long long)place,
+                    (char *)place,
+                    &fault
+                    );
+
+        er = rsa_download_more_ram(
+                        fault,
+                        &recvd
+                        );
+
+		struct uffdio_copy copy =
+            {
+                .dst = (long) place,
+                .src = (long) recvd->pPageData,
+                .len = pagesize
+            };
+		if (ioctl(fd, UFFDIO_COPY, &copy)) {
+			fprintf(stderr, "++ ioctl(fd, UFFDIO_COPY, ...) failed: %m\n");
+			goto cleanup_error;
+		}
     }
 
     if (pthread_join(thread, NULL)) {
@@ -140,5 +217,6 @@ cleanup_error:
     return_code = 1;
 
 cleanup:
+    if (fd) close(fd);
     return return_code;
 }
