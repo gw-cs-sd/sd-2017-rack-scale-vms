@@ -10,7 +10,7 @@
 
 #include <signal.h>
 
-#include "RSApi/includes.h"
+#include "../RSApi/includes.h"
 
 static int death = 0;
 

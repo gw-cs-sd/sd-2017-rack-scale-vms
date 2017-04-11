@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -g -Wall -Werror
 
-RSApi_DIR = RSApi
+RSApi_DIR = ../RSApi
 RSApi_LIB = $(RSApi_DIR)/build/librsa.a
 
 .PHONY: all
