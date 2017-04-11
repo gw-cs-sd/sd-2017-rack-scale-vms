@@ -1,14 +1,25 @@
-rsa_mem = rsa_mem_server rsa_mem_client
+CC = gcc
+CFLAGS = -g -Wall -Werror
 
-clean_rsa_mem = $(addprefix clean_,$(rsa_mem))
+RSApi_DIR = RSApi
+RSApi_LIB = $(RSApi_DIR)/build/librsa.a
 
-.PHONY: $(rsa_mem) $(clean_rsa_mem)
+.PHONY: all
+all: rsa_api rsa_mem_server rsa_test_client
 
-all: $(rsa_mem)
-clean: $(clean_rsa_mem)
+rebuild: clean all
 
-$(rsa_mem):
-	cd $@ && $(MAKE)
+rsa_api:
+	cd $(RSApi_DIR) && $(MAKE)
 
-$(clean_rsa_mem):
-	cd $(patsubst clean_%,%,$@) && $(MAKE) clean
+rsa_mem_server: rsa_api
+	$(CC) $(CFLAGS) -o $@ $@.c $(RSApi_LIB)
+
+rsa_test_client: rsa_api
+	$(CC) $(CFLAGS) -o $@ $@.c $(RSApi_LIB)
+
+.PHONY: clean
+clean:
+	rm -f rsa_mem_server rsa_test_client
+	cd $(RSApi_DIR) && $(MAKE) clean
+

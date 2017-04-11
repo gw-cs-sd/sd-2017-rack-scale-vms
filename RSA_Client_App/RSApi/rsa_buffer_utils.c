@@ -1,28 +1,24 @@
 
 #include "includes.h"
 
-static
-int
+static int
 rsa_buffer_can_write_to_buffer(
     pRSA_Byte_Stream    pByteStream,
     size_t              szDataLen
     );
 
-static
-int
+static int
 rsa_buffer_can_read_from_buffer(
     pRSA_Byte_Stream    pByteStream,
     size_t              szDataLen
     );
 
-static
-int
+static int
 rsa_is_big_endian(
     void
     );
 
-static
-int
+static int
 rsa_ntohll(
     PBYTE   pNetData,
     PBYTE   pHostData
@@ -31,7 +27,7 @@ rsa_ntohll(
 
 int
 rsa_buffer_init_buffer(
-    size_t  szMaxSize,
+    size_t              szMaxSize,
     pRSA_Byte_Stream*   ppByteStream
     )
 {
@@ -39,24 +35,25 @@ rsa_buffer_init_buffer(
     pRSA_Byte_Stream pByteStream = NULL;
 
     if (!ppByteStream ||
-        !szMaxSize ||
-        szMaxSize > MAX_BUFFER_LENGTH)
+        szMaxSize < 1 ||
+        szMaxSize > RSA_MAX_BUFFER_LENGTH)
     {
         rc = ARG_ERROR;
         BAIL_ERROR(rc);
     }
 
     pByteStream = malloc(sizeof(RSA_Byte_Stream));
-    BAIL_PTR_ERROR(pByteStream, rc);
+    BAIL_IF_ERROR(!pByteStream, PTR_ERROR, rc);
 
     pByteStream->pBuffer = malloc(sizeof(BYTE) * szMaxSize);
-    BAIL_PTR_ERROR(pByteStream->pBuffer, rc);
+    BAIL_IF_ERROR(!pByteStream->pBuffer, PTR_ERROR, rc);
 
-    pByteStream->szMaxSize = szMaxSize;
+    pByteStream->szMaxSize  = szMaxSize;
     pByteStream->szWriteCur = 0;
-    pByteStream->szReadCur = 0;
+    pByteStream->szReadCur  = 0;
 
     *ppByteStream = pByteStream;
+
 
 cleanup:
 
@@ -146,6 +143,55 @@ error:
 }
 
 int
+rsa_buffer_serialize_blob(
+    PBYTE               pData,
+    uint64_t            unSize,
+    pRSA_Byte_Stream    pByteStream
+    )
+{
+    int rc = NO_ERROR;
+    PBYTE pCursor = NULL;
+
+    if (!pByteStream || !pData || unSize < 0)
+    {
+        rc = ARG_ERROR;
+        BAIL_ERROR(rc);
+    }
+
+    if (!rsa_buffer_can_write_to_buffer(
+                    pByteStream,
+                    unSize))
+    {
+        rc = COM_ERROR;
+        printf("ERROR: can't write %" PRIu64 " size blob to buffer\n", unSize);
+        BAIL_ERROR(rc);
+    }
+
+    pCursor = pByteStream->pBuffer + pByteStream->szWriteCur;
+
+    if (!memcpy(
+            (void *)pCursor,
+            pData,
+            unSize))
+    {
+        rc = COM_ERROR;
+        printf("ERROR: failed memcpy %" PRIu64 " size blob to pByteStream->pBuffer\n", unSize);
+        BAIL_ERROR(rc);
+    }
+
+    pByteStream->szWriteCur += unSize;
+
+
+cleanup:
+
+    return rc;
+
+error:
+
+    goto cleanup;
+}
+
+int
 rsa_buffer_deserialize_uint64(
     pRSA_Byte_Stream    pByteStream,
     uint64_t*           punData
@@ -209,35 +255,106 @@ error:
 }
 
 int
-rsa_buffer_write_to_socket(
-    int                 sockfd,
-    pRSA_Byte_Stream    pByteStream
+rsa_buffer_deserialize_blob(
+    pRSA_Byte_Stream    pByteStream,
+    uint64_t            unSize,
+    PBYTE*              ppData
     )
 {
-    int rc = NO_ERROR;
+    int rc = 0;
+    PBYTE pCursor = NULL;
+    PBYTE pData = NULL;
 
-    if (sockfd < 0 || !pByteStream)
+    if (!pByteStream || !ppData || unSize < 0)
     {
         rc = ARG_ERROR;
         BAIL_ERROR(rc);
     }
 
-    rc = send(
-            sockfd,
-            pByteStream->pBuffer,
-            pByteStream->szWriteCur,
-            NET_FLAGS
-            );
-    BAIL_ERROR_IF(rc && rc == -1);
-
-    if (rc && rc != -1)
+    if (!rsa_buffer_can_read_from_buffer(
+                        pByteStream,
+                        unSize))
     {
-        rc = NO_ERROR;
+        rc = COM_ERROR;
+        printf("ERROR: can't read %" PRIu64 " sized blob from buffer\n", unSize);
+        BAIL_ERROR(rc);
     }
+
+    pData = (PBYTE)malloc(unSize);
+    BAIL_IF_ERROR(!pData, PTR_ERROR, rc);
+
+    pCursor = pByteStream->pBuffer + pByteStream->szReadCur;
+
+    if (!memcpy(
+            (void *)pData,
+            (void *)pCursor,
+            unSize))
+    {
+        rc = COM_ERROR;
+        printf("ERROR: failed memcpy %" PRIu64 " sized blob from pByteStream->pBuffer\n", unSize);
+        BAIL_ERROR(rc);
+    }
+
+    pByteStream->szReadCur += unSize;
+
+    *ppData = pData;
 
 
 cleanup:
 
+    return rc;
+
+error:
+
+    if (ppData)
+    {
+        *ppData = 0;
+    }
+
+    goto cleanup;
+}
+
+int
+rsa_buffer_write_to_socket(
+    int                 sockfd,
+    pRSA_Byte_Stream    pByteStream,
+    int*                piBytesSent
+    )
+{
+    int rc = NO_ERROR;
+    int iTotalSent = 0;
+    int iBytesLeft = 0;
+    int iSent = 0;
+
+    if (sockfd < 0 || !pByteStream || !piBytesSent)
+    {
+        rc = ARG_ERROR;
+        BAIL_ERROR(rc);
+    }
+
+    iBytesLeft = pByteStream->szWriteCur;
+
+    while (iTotalSent < pByteStream->szWriteCur)
+    {
+        iSent = send(
+                    sockfd,
+                    pByteStream->pBuffer + iTotalSent,
+                    iBytesLeft,
+                    RSA_NO_FLAGS
+                    );
+        if (iSent == -1)
+        {
+            break;
+        }
+        iTotalSent += iSent;
+        iBytesLeft -= iSent;
+    }
+    BAIL_IF_ERROR(iSent == -1, COM_ERROR, rc);
+
+
+cleanup:
+
+    *piBytesSent = iTotalSent;
     return rc;
 
 error:
@@ -247,36 +364,34 @@ error:
 
 int
 rsa_buffer_read_from_socket(
-    int sockfd,
-    pRSA_Byte_Stream    pByteStream
+    int                 sockfd,
+    pRSA_Byte_Stream    pByteStream,
+    int*                piBytesRead
     )
 {
     int rc = NO_ERROR;
-    int bytes_read = 0;
+    int iBytesRead = 0;
 
-    if (sockfd < 0 || !pByteStream)
+    if (sockfd < 0 || !pByteStream || !piBytesRead)
     {
         rc = ARG_ERROR;
         BAIL_ERROR(rc);
     }
 
-    bytes_read = read(
+    iBytesRead = recv(
                     sockfd,
                     pByteStream->pBuffer,
-                    200
+                    pByteStream->szMaxSize,
+                    RSA_NO_FLAGS
                     );
-    if (bytes_read == -1)
-    {
-        rc = COM_ERROR;
-        printf("ERROR: could not read from socket\n");
-        BAIL_ERROR(rc);
-    }
+    BAIL_IF_ERROR(iBytesRead == -1, COM_ERROR, rc);
 
-    pByteStream->szWriteCur = bytes_read;
+    pByteStream->szWriteCur = iBytesRead;
 
 
 cleanup:
 
+    *piBytesRead = iBytesRead;
     return rc;
 
 error:
