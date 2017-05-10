@@ -20,8 +20,10 @@
 
 #include "../RSApi/includes.h"
 
+#define UNUSED(x) x __attribute__((__unused__))
 #define NUM_PAGES 2
 #define DEBUG 1
+#define pagesize 4096
 
 #define DEBUG_PRINT(_str, ...)                                  \
     do {                                                        \
@@ -52,8 +54,6 @@
         }                                                       \
     } while(0)
 
-unsigned long pagesize;
-
 int userfaultfd(int flags)
 {
 	return syscall(SYS_userfaultfd, flags);
@@ -61,16 +61,12 @@ int userfaultfd(int flags)
 
 void *touch_memory(void *memory)
 {
-    int i = 0;
-    for (; i < 2; ++i) {
-        fprintf(stdout, "-- page1: %p - %s\n", memory, (char *)memory);
-        fprintf(stdout, "-- page2: %p - %s\n", memory+pagesize, (char *)(memory+pagesize));
-    }
+    fprintf(stdout, "-- page1: %p - %s\n", memory, (char *)memory);
+    fprintf(stdout, "-- page2: %p - %s\n", memory+pagesize, (char *)(memory+pagesize));
 
     return NULL;
 }
 
-#define pagesize 4096
 
 int main (int argc, char **argv)
 {
@@ -180,19 +176,20 @@ int main (int argc, char **argv)
 			goto cleanup_error;
 		}
 
-        int er = 0;
-        pRSA_Mem_Data fault = { 0 };
-        pRSA_Mem_Data recvd = { 0 };
-        er = rsa_init_mem_data(
-                    (unsigned long long)place,
-                    (char *)place,
-                    &fault
-                    );
+        fprintf(stderr, "Someone touched a page!!\n");
+        fprintf(stderr, "Download some memory and put it there!\n");
+        RSA_Mem_Data fault =
+            {
+                .unVirtAddr = (long)place,
+                .pPageData = data
+            };
+        pRSA_Mem_Data recvd = NULL;
 
-        er = rsa_download_more_ram(
-                        fault,
+        rsa_download_more_ram(
+                        &fault,
                         &recvd
                         );
+        fprintf(stderr, "Downloaded memory, copying data to page\n");
 
 		struct uffdio_copy copy =
             {
