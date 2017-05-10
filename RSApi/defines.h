@@ -12,7 +12,7 @@
 #endif
 
 #ifndef RSA_PORT
-#define RSA_PORT "2222"
+#define RSA_PORT "2223"
 #endif
 
 #ifndef RSA_IP_ADDR

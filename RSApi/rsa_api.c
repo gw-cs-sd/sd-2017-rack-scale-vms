@@ -145,7 +145,6 @@ cleanup:
     rsa_buffer_cleanup_buffer(pSendStream);
     rsa_buffer_cleanup_buffer(pRecvStream);
 
-    printf("\n[RSApi INFO] Downloaded more RAM!\n");
     return 0;
 
 error:

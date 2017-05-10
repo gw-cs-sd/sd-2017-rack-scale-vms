@@ -7,24 +7,37 @@
  *     more memory.  It then stores the received pages+data into a hash table for
  *     easy referencing.
  */
-
 #include <signal.h>
 
 #include "../RSApi/includes.h"
 
+#define UNUSED(x) x __attribute__((__unused__))
+#define TEST
+
+
 static int death = 0;
 
 static void
-signal_handler(int sig)
-{
-    if (sig == SIGINT || sig == SIGTERM) death = 1;
-}
+do_networking(void);
+
+static void
+signal_handler(int sig);
+
 
 int
 main(
     int     argc,
     char    **argv
     )
+{
+    do_networking();
+
+    return 0;
+}
+
+
+static void
+do_networking(void)
 {
     int rc = NO_ERROR;
     int sockfd = 0;
@@ -41,12 +54,7 @@ main(
     pRSA_Byte_Stream pRecvBuffer = NULL;
     pRSA_Byte_Stream pSendBuffer = NULL;
     pRSA_Mem_Data pRecvMemData = NULL;
-    char* dummy = "LordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddyLordBrownDaddy\n";
-    RSA_Mem_Data mdSendMemData =
-        {
-            .unVirtAddr = 0x01020304,
-            .pPageData = (PBYTE)dummy
-        };
+    UNUSED(pRSA_Mem_Data pSendMemData) = NULL;
 
     signal(SIGINT,  &signal_handler);
     signal(SIGTERM, &signal_handler);
@@ -87,7 +95,7 @@ main(
                         (struct sockaddr *)&client_addr,
                         &addr_size
                         );
-        RSA_LOG("could not accept connection on socket\n");
+        //RSA_LOG("could not accept connection on socket\n");
         BAIL_IF_ERROR(clientfd == -1, COM_ERROR, rc);
 
         rc = rsa_buffer_init_buffer(
@@ -123,9 +131,11 @@ main(
         BAIL_ERROR(rc);
 
         printf("Recevied data:\n");
-        printf("\tVirtAddr: %" PRIu64 "\n", pRecvMemData->unVirtAddr);
+        printf("\tVirtAddr: %" PRIx64 "\n", pRecvMemData->unVirtAddr);
         printf("\tPageData Pointer: %p\n", pRecvMemData->pPageData);
         printf("\tPageData Contents as str: %s\n", pRecvMemData->pPageData);
+
+        // TODO: Lookup recv data in ht, store it, serve it
 
         printf("Sending response\n");
 
@@ -135,10 +145,24 @@ main(
                         );
         BAIL_ERROR(rc);
 
+#ifdef TEST
+        char* dummy = "Memory Downloaded! :)\n";
+        RSA_Mem_Data mdTestMemData =
+            {
+                .unVirtAddr = 0x01020304,
+                .pPageData  = (PBYTE)dummy
+            };
+
         rc = rsa_serialize_mem_data(
-                        &mdSendMemData,
+                        &mdTestMemData,
                         pSendBuffer
                         );
+#else
+        rc = rsa_serialize_mem_data(
+                        pSendMemData,
+                        pSendBuffer
+                        );
+#endif
         BAIL_ERROR(rc);
 
         rc = rsa_buffer_write_to_socket(
@@ -167,9 +191,15 @@ cleanup:
     close(sockfd);
 
     printf("\nRSA MemServer Exiting\n");
-    return rc;
+    exit(rc);
 
 error:
 
     goto cleanup;
+}
+
+static void
+signal_handler(int sig)
+{
+        if (sig == SIGINT || sig == SIGTERM) death = 1;
 }
