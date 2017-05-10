@@ -103,7 +103,12 @@ void slabs_init(const size_t limit, const double factor, const bool prealloc, co
 
     if (prealloc) {
         /* Allocate everything in a big chunk with malloc */
-        mem_base = malloc(mem_limit);
+        //mem_base = malloc(mem_limit);
+        unsigned long pagesize = sysconf(_SC_PAGESIZE);
+        if (posix_memalign(&mem_base, pagesize, mem_limit) != 0) {
+            fprintf(stderr, "ERROR allocating memory for slabs!\n");
+            exit(-1);
+        }
         if (mem_base != NULL) {
             mem_current = mem_base;
             mem_avail = mem_limit;
