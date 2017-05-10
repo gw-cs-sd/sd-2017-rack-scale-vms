@@ -56,7 +56,7 @@
 
 int userfaultfd(int flags)
 {
-	return syscall(SYS_userfaultfd, flags);
+    return syscall(SYS_userfaultfd, flags);
 }
 
 void *touch_memory(void *memory)
@@ -97,9 +97,9 @@ int main (int argc, char **argv)
     }
 
     if (api.api != UFFD_API) {
-		fprintf(stderr, "++ unexepcted UFFD api version.\n");
-		goto cleanup_error;
-	}
+        fprintf(stderr, "++ unexepcted UFFD api version.\n");
+        goto cleanup_error;
+    }
 
     void *pages = NULL;
     //if ((pages = mmap(NULL, pagesize * NUM_PAGES, PROT_READ | PROT_WRITE,
@@ -129,15 +129,15 @@ int main (int argc, char **argv)
                     .start = (long) pages,
                     .len = pagesize * 2
                 }
-	    };
-	if (ioctl(fd, UFFDIO_REGISTER,  &reg)) {
-		fprintf(stderr, "++ ioctl(fd, UFFDIO_REGISTER, ...) failed: %m\n");
-		goto cleanup_error;
-	}
-	if (reg.ioctls != UFFD_API_RANGE_IOCTLS) {
-		fprintf(stderr, "++ unexpected UFFD ioctls.\n");
-		goto cleanup_error;
-	}
+        };
+    if (ioctl(fd, UFFDIO_REGISTER,  &reg)) {
+        fprintf(stderr, "++ ioctl(fd, UFFDIO_REGISTER, ...) failed: %m\n");
+        goto cleanup_error;
+    }
+    if (reg.ioctls != UFFD_API_RANGE_IOCTLS) {
+        fprintf(stderr, "++ unexpected UFFD ioctls.\n");
+        goto cleanup_error;
+    }
 
     DEBUG_PAUSE();
 
@@ -155,26 +155,26 @@ int main (int argc, char **argv)
             .events = POLLIN
         };
 
-	while (poll(&evt, 1, 10) > 0) {
-		/* unexpected poll events */
-		if (evt.revents & POLLERR) {
-			fprintf(stderr, "++ POLLERR\n");
-			goto cleanup_error;
-		} else if (evt.revents & POLLHUP) {
-			fprintf(stderr, "++ POLLHUP\n");
-			goto cleanup_error;
-		}
-		struct uffd_msg fault_msg = {0};
-		if (read(fd, &fault_msg, sizeof(fault_msg)) != sizeof(fault_msg)) {
-			fprintf(stderr, "++ read failed: %m\n");
-			goto cleanup_error;
-		}
-		char *place = (char *)fault_msg.arg.pagefault.address;
-		if (fault_msg.event != UFFD_EVENT_PAGEFAULT
-		    || (place != pages && place != pages + pagesize)) {
-			fprintf(stderr, "unexpected pagefault?.\n");
-			goto cleanup_error;
-		}
+    while (poll(&evt, 1, 10) > 0) {
+        /* unexpected poll events */
+        if (evt.revents & POLLERR) {
+            fprintf(stderr, "++ POLLERR\n");
+            goto cleanup_error;
+        } else if (evt.revents & POLLHUP) {
+            fprintf(stderr, "++ POLLHUP\n");
+            goto cleanup_error;
+        }
+        struct uffd_msg fault_msg = {0};
+        if (read(fd, &fault_msg, sizeof(fault_msg)) != sizeof(fault_msg)) {
+            fprintf(stderr, "++ read failed: %m\n");
+            goto cleanup_error;
+        }
+        char *place = (char *)fault_msg.arg.pagefault.address;
+        if (fault_msg.event != UFFD_EVENT_PAGEFAULT
+            || (place != pages && place != pages + pagesize)) {
+            fprintf(stderr, "unexpected pagefault?.\n");
+            goto cleanup_error;
+        }
 
         fprintf(stderr, "Someone touched a page!!\n");
         fprintf(stderr, "Download some memory and put it there!\n");
@@ -191,16 +191,16 @@ int main (int argc, char **argv)
                         );
         fprintf(stderr, "Downloaded memory, copying data to page\n");
 
-		struct uffdio_copy copy =
+        struct uffdio_copy copy =
             {
                 .dst = (long) place,
                 .src = (long) recvd->pPageData,
                 .len = pagesize
             };
-		if (ioctl(fd, UFFDIO_COPY, &copy)) {
-			fprintf(stderr, "++ ioctl(fd, UFFDIO_COPY, ...) failed: %m\n");
-			goto cleanup_error;
-		}
+        if (ioctl(fd, UFFDIO_COPY, &copy)) {
+            fprintf(stderr, "++ ioctl(fd, UFFDIO_COPY, ...) failed: %m\n");
+            goto cleanup_error;
+        }
     }
 
     if (pthread_join(thread, NULL)) {
