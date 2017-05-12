@@ -1,5 +1,6 @@
 CC = gcc
 CFLAGS = -g -Wall -Werror
+BUILD = ./build
 
 RSApi_DIR = ../RSApi
 RSApi_LIB = $(RSApi_DIR)/build/librsa.a
@@ -13,13 +14,13 @@ rsa_api:
 	cd $(RSApi_DIR) && $(MAKE)
 
 rsa_mem_server: rsa_api
-	$(CC) $(CFLAGS) -o $@ $@.c $(RSApi_LIB)
+	$(CC) $(CFLAGS) -o $(BUILD)/$@ $@.c $(RSApi_LIB)
 
 rsa_test_client: rsa_api
-	$(CC) $(CFLAGS) -o $@ $@.c $(RSApi_LIB)
+	$(CC) $(CFLAGS) -o $(BUILD)/$@ $@.c $(RSApi_LIB)
 
 .PHONY: clean
 clean:
-	rm -f rsa_mem_server rsa_test_client
+	rm -f $(BUILD)/rsa_mem_server $(BUILD)/rsa_test_client
 	cd $(RSApi_DIR) && $(MAKE) clean
 
