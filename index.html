@@ -1,24 +1,24 @@
 <!DOCTYPE HTML>
 <HTML>
-	<head>
-		<title>GW CS Senior Design Neel Shah</title>
-		<style>
-		body {
-	background-color: #005A81;
+    <head>
+        <title>GW CS Senior Design Neel Shah</title>
+        <style>
+        body {
+    background-color: #005A81;
 }
 
 h1 {
-	margin-left: 80px;
-	font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+    margin-left: 80px;
+    font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
 }
 
 h2 {
-	font-family: "Cambria";
-	margin-left: 30px;
+    font-family: "Cambria";
+    margin-left: 30px;
 }
 
 p {
-	font-family: "Cambria";
+    font-family: "Cambria";
 }
 
 a:hover {
@@ -31,76 +31,83 @@ a {
 }
 
 #outer_div {
-	margin-right: 80px;
-	margin-left: 80px;
-	background: white;
-	border-radius: 8px;
+    margin-right: 80px;
+    margin-left: 80px;
+    background: white;
+    border-radius: 8px;
 }
 
 #middle_div {
-	padding: 30px;
+    padding: 30px;
 }
 
 #header_div {
-	font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
-	font-size: 30px;
-	margin-left: 80px;
-	color: white;
+    font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+    font-size: 30px;
+    margin-left: 80px;
+    color: white;
 }
 
 #inside_div {
-	margin-left: 30px;
+    margin-left: 30px;
 }
 
 .subheader_div img {
-	margin-left: 50px;
-	position: relative;
-	float: right;
+    margin-left: 50px;
+    position: relative;
+    float: right;
 }
-		</style>
-	</head>
-	<body>
-		<div id="header_div">
-			<p>
-			<a href="https://capstone.cs.gwu.edu/">GW CS Senior Design</a> 2017
-			</p>
-		</div>
-		<div id="outer_div">
-			<div id="middle_div">
-				<div class="subheader_div">
-					<h2>Neel Shah: Rack Scale VMs</h2>
-					<img src="images/headshot.jpg" width="150">
-				</div>
-				<div id="inside_div">
-					<p>
-						A softare solution for rack scale architecture.  Rack scale architecture provides the opposite of traditional virtualizatoin--it enables one virtual machine to access the hardware of other physical machines in the same rack.  This project leverages the Xen hypervisor, Bitdefender's libbdvmi, and novel memory management algorithms to recreate rack scale architecture with only software on commodity hardware.
-					</p>
-					<p>
-						<strong>Bio:</strong>
-						I'm a systems hacker interested in operating systems, networking, virtualization, and security.  Currently, I'm a senior at GWU studying computer science, and after I gradute, I will be working at VMware within their CloudOS group.
-					</p>
-					<p>
-						<strong>Documentation:</strong>
-						<ul>
-						    <li><a href="docs/writing1.pdf">Writing 1 | Project Proposal</a></li>
-                            <li><a href="docs/writing2.pdf">Writing 2 | Elevator Pitch</a></li>
-                            <li><a href="docs/writing3.pdf">Writing 3 | Commercial Opportunity and Social Impact</a></li>
-                            <li><a href="docs/writing4.pdf">Writing 4 | SIBR Grant</a></li>
-                            <li><a href="docs/design_doc1.pdf">Design Document 1</a></li>
-						</ul>
+        </style>
+    </head>
+    <body>
+        <div id="header_div">
+            <p>
+            <a href="https://capstone.cs.gwu.edu/">GW CS Senior Design</a> 2017
+            </p>
+        </div>
+        <div id="outer_div">
+            <div id="middle_div">
+                <div class="subheader_div">
+                    <h2>Neel Shah: Rack Scale VMs</h2>
+                    <img src="images/headshot.jpg" width="150">
+                </div>
+                <div id="inside_div">
+                    <p>Currently, the cloud is one of the most significant trends in computer science and it is projected to become even more important over time.  The cloud relies on datacenters which are accountable for 2% of the energy utilization within the US.  Sustaining these datacenters involves paying for idle servers that do nothing other than stay powered on.  Powering these idle machines costs around $30 billion worldwide.</p>
+                    <p>This is a problem that can effectively be solved by leveraging modern computing architectures such as Rack Scale Architecture.  This project is a software version of Rack Scale Architecture that can be used to improve applications' performance in hardware constrained environments.  Rack Scale Apps provides the capabilities to "fool" a process such that it believes it has more memory to work with.  Leveraging userfaultfd, a custom memory server, and a network API, Rack Scale Apps makes it possible to pool resources within a rack of servers together and effectively balance the hardware utilization across an entire rack.</p>
+                    <p>
+                        <strong>Bio:</strong><br />
+                        Neel Shah is a systems hacker interested in operating systems, networking, virtualization, and security.  Currently, he is a senior at GWU studying computer science with plans to work at VMware after graduation. At VMware, Neel will work within their CloudOS group.
+                    </p>
+                    <p>
+                        <strong>Presentations</strong>
+                        <ul>
+                            <li><a href="pres/pres1.pdf">Tech Tutorial: LibVMI</a></li>
+                            <li><a href="pres/pres3.pdf">Architecture Overview: Rack Scale VMs</a></li>
+                            <li><a href="pres/final.pdf">Final Presentation: Rack Scale Apps</a></li>
+                        </ul>
+                        <strong>Documentation</strong>
+                        <ul>
+                            <li><a href="docs/writing1.pdf">Writing 1: Project Proposal</a></li>
+                            <li><a href="docs/writing2.pdf">Writing 2: Elevator Pitch</a></li>
+                            <li><a href="docs/writing3.pdf">Writing 3: Commercial Opportunity and Social Impact</a></li>
+                            <li><a href="docs/writing4.pdf">Writing 4: SIBR Grant</a></li>
+                            <li><a href="docs/design_doc1.pdf">Design Document: Rack Scale VMs</a></li>
+                        </ul>
+                        <strong>Final Presentation Screencast</strong>
+                        <iframe width="560" height="315" src="https://www.youtube.com/embed/aeQ__85c8WE?rel=0" frameborder="0" allowfullscreen></iframe>
 
-						<!--
-						<iframe
-							width="420"
-							height="315"
-							src="FILL-IN YOUR YOUTUBE LINK at end of year and uncomment"
-							frameborder="0"
-							allowfullscreen>
-						</iframe>
-						!-->
-					</p>
-				</div>
-			</div>
-		</div>
-	<body>
+                        <!--
+                        <iframe
+                            width="420"
+                            height="315"
+                            src="FILL-IN YOUR YOUTUBE LINK at end of year and uncomment"
+                            frameborder="0"
+                            allowfullscreen>
+                        </iframe>
+                        !-->
+                    </p>
+                </div>
+            </div>
+        </div>
+    <body>
 </HTML>
