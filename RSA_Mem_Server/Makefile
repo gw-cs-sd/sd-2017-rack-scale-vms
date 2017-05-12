@@ -1,26 +1,26 @@
 CC = gcc
-CFLAGS = -g -Wall -Werror
+CFLAGS = -g -O0 -Wall -Werror
+LDFLAGS =
 BUILD = ./build
+SRC=$(wildcard *.c)
 
 RSApi_DIR = ../RSApi
 RSApi_LIB = $(RSApi_DIR)/build/librsa.a
 
-.PHONY: all
-all: rsa_api rsa_mem_server rsa_test_client
+.PHONY: all rebuild rsa_api build_all clean
+
+all: rsa_api build_all
 
 rebuild: clean all
 
 rsa_api:
 	cd $(RSApi_DIR) && $(MAKE)
 
-rsa_mem_server: rsa_api
-	$(CC) $(CFLAGS) -o $(BUILD)/$@ $@.c $(RSApi_LIB)
+build_all: $(patsubst %.c, $(BUILD)/%.o, $(SRC))
 
-rsa_test_client: rsa_api
-	$(CC) $(CFLAGS) -o $(BUILD)/$@ $@.c $(RSApi_LIB)
+$(BUILD)/%.o : %.c
+	$(CC) $(CFLAGS) -o $(@) $(^) $(RSApi_LIB) $(LDFLAGS)
 
-.PHONY: clean
 clean:
-	rm -f $(BUILD)/rsa_mem_server $(BUILD)/rsa_test_client
+	rm -f $(SRC:%.c=$(BUILD)/%.o)
 	cd $(RSApi_DIR) && $(MAKE) clean
-

@@ -2,17 +2,12 @@
 #include "includes.h"
 
 int
-rsa_init_mem_data(
-    uint64_t            unVirtAddr,
-    PBYTE               pData,
-    pRSA_Mem_Data*      ppMemData
-    )
+rsa_init_mem_data(uint64_t unVirtAddr, PBYTE pData, pRSA_Mem_Data *ppMemData)
 {
     int rc = NO_ERROR;
     pRSA_Mem_Data pMemData = NULL;
 
-    if (!ppMemData || !pData || unVirtAddr < 0)
-    {
+    if (!ppMemData || !pData || unVirtAddr < 0) {
         rc = ARG_ERROR;
         BAIL_ERROR(rc);
     }
@@ -23,10 +18,7 @@ rsa_init_mem_data(
     BAIL_IF_ERROR(!pMemData->pPageData, PTR_ERROR, rc);
 
     pMemData->unVirtAddr = unVirtAddr;
-    if (!memcpy(pMemData->pPageData,
-                pData,
-                PAGESIZE))
-    {
+    if (!memcpy(pMemData->pPageData, pData, PAGESIZE)) {
         rc = COM_ERROR;
         RSA_LOG("[RSApi ERROR] failed memcpy on pMemData->pPageData\n");
         BAIL_ERROR(rc);
@@ -42,8 +34,7 @@ cleanup:
 error:
 
     rsa_cleanup_mem_data(pMemData);
-    if (ppMemData)
-    {
+    if (ppMemData) {
         *ppMemData = NULL;
     }
 
@@ -51,14 +42,10 @@ error:
 }
 
 void
-rsa_cleanup_mem_data(
-    pRSA_Mem_Data       pMemData
-    )
+rsa_cleanup_mem_data(pRSA_Mem_Data pMemData)
 {
-    if (pMemData)
-    {
-        if (pMemData->pPageData)
-        {
+    if (pMemData) {
+        if (pMemData->pPageData) {
             SAFE_FREE(pMemData->pPageData);
             pMemData->pPageData = NULL;
         }
@@ -69,13 +56,10 @@ rsa_cleanup_mem_data(
 }
 
 int
-rsa_download_more_ram(
-    pRSA_Mem_Data       pMemData,
-    pRSA_Mem_Data*      ppRetData
-    )
+rsa_download_more_ram(pRSA_Mem_Data pMemData, pRSA_Mem_Data *ppRetData)
 {
     int rc = NO_ERROR;
-    struct addrinfo* pServerInfo = NULL;
+    struct addrinfo *pServerInfo = NULL;
     int iSockFd = 0;
     pRSA_Byte_Stream pSendStream = NULL;
     pRSA_Byte_Stream pRecvStream = NULL;
@@ -84,56 +68,23 @@ rsa_download_more_ram(
 
     BAIL_IF_ERROR((!ppRetData || !pMemData), ARG_ERROR, rc);
 
-    rc = rsa_net_create_socket(
-                RSA_NO_FLAGS,
-                &pServerInfo,
-                &iSockFd
-                );
+    rc = rsa_net_create_socket(RSA_NO_FLAGS, &pServerInfo, &iSockFd);
+    BAIL_ERROR(rc);
+    rc = rsa_net_connect_socket(RSA_PROC_CLIENT, pServerInfo, iSockFd);
+    BAIL_ERROR(rc);
+    rc = rsa_buffer_init_buffer(PAGESIZE + sizeof(uint64_t), &pSendStream);
+    BAIL_ERROR(rc);
+    rc = rsa_buffer_init_buffer(PAGESIZE + sizeof(uint64_t), &pRecvStream);
     BAIL_ERROR(rc);
 
-    rc = rsa_net_connect_socket(
-                RSA_PROC_CLIENT,
-                pServerInfo,
-                iSockFd
-                );
+    rc = rsa_serialize_mem_data(pMemData, pSendStream);
     BAIL_ERROR(rc);
-
-    rc = rsa_buffer_init_buffer(
-                    PAGESIZE + sizeof(uint64_t),
-                    &pSendStream
-                    );
-    BAIL_ERROR(rc);
-
-    rc = rsa_buffer_init_buffer(
-                    PAGESIZE + sizeof(uint64_t),
-                    &pRecvStream
-                    );
-    BAIL_ERROR(rc);
-
-    rc = rsa_serialize_mem_data(
-                    pMemData,
-                    pSendStream
-                    );
-    BAIL_ERROR(rc);
-
-    rc = rsa_buffer_write_to_socket(
-                        iSockFd,
-                        pSendStream,
-                        &temp
-                        );
+    rc = rsa_buffer_write_to_socket(iSockFd, pSendStream, &temp);
     BAIL_IF_ERROR(pSendStream->szWriteCur != temp, COM_ERROR, rc);
 
-    rc = rsa_buffer_read_from_socket(
-                        iSockFd,
-                        pRecvStream,
-                        &temp
-                        );
+    rc = rsa_buffer_read_from_socket(iSockFd, pRecvStream, &temp);
     BAIL_ERROR(rc);
-
-    rc = rsa_deserialize_mem_data(
-                    pRecvStream,
-                    &pRetData
-                    );
+    rc = rsa_deserialize_mem_data(pRecvStream, &pRetData);
     BAIL_ERROR(rc);
 
     *ppRetData = pRetData;
@@ -150,8 +101,7 @@ cleanup:
 error:
 
     rsa_cleanup_mem_data(pRetData);
-    if (ppRetData)
-    {
+    if (ppRetData) {
         *ppRetData = NULL;
     }
 
@@ -159,30 +109,18 @@ error:
 }
 
 int
-rsa_serialize_mem_data(
-    pRSA_Mem_Data       pMemData,
-    pRSA_Byte_Stream    pByteStream
-    )
+rsa_serialize_mem_data(pRSA_Mem_Data pMemData, pRSA_Byte_Stream pByteStream)
 {
     int rc = NO_ERROR;
 
-    if (!pMemData || !pByteStream)
-    {
+    if (!pMemData || !pByteStream) {
         rc = ARG_ERROR;
         BAIL_ERROR(rc);
     }
 
-    rc = rsa_buffer_serialize_uint64(
-                        pMemData->unVirtAddr,
-                        pByteStream
-                        );
+    rc = rsa_buffer_serialize_uint64(pMemData->unVirtAddr, pByteStream);
     BAIL_ERROR(rc);
-
-    rc = rsa_buffer_serialize_blob(
-                    pMemData->pPageData,
-                    PAGESIZE,
-                    pByteStream
-                    );
+    rc = rsa_buffer_serialize_blob(pMemData->pPageData, PAGESIZE, pByteStream);
     BAIL_ERROR(rc);
 
 
@@ -196,37 +134,23 @@ error:
 }
 
 int
-rsa_deserialize_mem_data(
-    pRSA_Byte_Stream    pByteStream,
-    pRSA_Mem_Data*      ppMemData
-    )
+rsa_deserialize_mem_data(pRSA_Byte_Stream pByteStream, pRSA_Mem_Data *ppMemData)
 {
     int rc = NO_ERROR;
     pRSA_Mem_Data pMemData = NULL;
 
-    if (!pByteStream || !ppMemData)
-    {
+    if (!pByteStream || !ppMemData) {
         rc = ARG_ERROR;
         BAIL_ERROR(rc);
     }
 
     pMemData = malloc(sizeof(RSA_Mem_Data));
     BAIL_IF_ERROR(!pMemData, PTR_ERROR, rc);
-
-    rc = rsa_buffer_deserialize_uint64(
-                        pByteStream,
-                        &pMemData->unVirtAddr
-                        );
+    rc = rsa_buffer_deserialize_uint64(pByteStream, &pMemData->unVirtAddr);
     BAIL_ERROR(rc);
-
     pMemData->pPageData = malloc(PAGESIZE);
     BAIL_IF_ERROR(!pMemData->pPageData, PTR_ERROR, rc);
-
-    rc = rsa_buffer_deserialize_blob(
-                        pByteStream,
-                        PAGESIZE,
-                        &pMemData->pPageData
-                        );
+    rc = rsa_buffer_deserialize_blob(pByteStream, PAGESIZE, &pMemData->pPageData);
     BAIL_ERROR(rc);
 
     *ppMemData = pMemData;
@@ -239,8 +163,7 @@ cleanup:
 error:
 
     rsa_cleanup_mem_data(pMemData);
-    if (ppMemData)
-    {
+    if (ppMemData) {
         *ppMemData = NULL;
     }
 

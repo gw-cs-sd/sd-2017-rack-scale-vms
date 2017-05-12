@@ -14,21 +14,15 @@
 #define UNUSED(x) x __attribute__((__unused__))
 #define TEST
 
-
 static int death = 0;
 
-static void
-do_networking(void);
 
-static void
-signal_handler(int sig);
+static void do_networking(void);
+static void signal_handler(int sig);
 
 
 int
-main(
-    int     argc,
-    char    **argv
-    )
+main(int argc, char **argv)
 {
     do_networking();
 
@@ -59,64 +53,32 @@ do_networking(void)
     signal(SIGINT,  &signal_handler);
     signal(SIGTERM, &signal_handler);
 
-    rc = rsa_net_create_socket(
-                    sockopts,
-                    &server,
-                    &sockfd
-                    );
+    rc = rsa_net_create_socket(sockopts, &server, &sockfd);
     BAIL_ERROR(rc);
-
-    rc = setsockopt(
-            sockfd,
-            SOL_SOCKET,
-            SO_REUSEADDR,
-            &yes,
-            sizeof(int)
-            );
+    rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
     BAIL_ERROR(rc);
-
-    rsa_net_connect_socket(
-                RSA_PROC_SERVER,
-                server,
-                sockfd
-                );
+    rsa_net_connect_socket(RSA_PROC_SERVER, server, sockfd);
     BAIL_ERROR(rc);
-
     listen(sockfd, RSA_BACKLOG);
-
     printf("INFO: RSA Mem Server Started: Listening on: %s:%s\n", RSA_IP_ADDR, RSA_PORT);
 
-    for (;;)
-    {
+    for (;;) {
         addr_size = sizeof(client_addr);
 
-        clientfd = accept(
-                        sockfd,
-                        (struct sockaddr *)&client_addr,
-                        &addr_size
-                        );
-        //RSA_LOG("could not accept connection on socket\n");
+        clientfd = accept(sockfd, (struct sockaddr *)&client_addr, &addr_size);
         BAIL_IF_ERROR(clientfd == -1, COM_ERROR, rc);
-
-        rc = rsa_buffer_init_buffer(
-                        PAGESIZE + sizeof(uint64_t),
-                        &pRecvBuffer
-                        );
+        rc = rsa_buffer_init_buffer(PAGESIZE + sizeof(uint64_t), &pRecvBuffer);
         BAIL_ERROR(rc);
-
-        rc = rsa_buffer_read_from_socket(
-                            clientfd,
-                            pRecvBuffer,
-                            &bytes_read
-                            );
+        rc = rsa_buffer_read_from_socket(clientfd, pRecvBuffer, &bytes_read);
         BAIL_ERROR(rc);
+        if (bytes_read == 0) {
+            continue;
+        }
 
-        if (DEBUG)
-        {
+        if (DEBUG) {
             printf("NEW CONNECTION: client ip = ");
 
-            for (idx = 2; idx < 6; ++idx)
-            {
+            for (idx = 2; idx < 6; ++idx) {
                 ipaddr = (int)(((struct sockaddr *)&client_addr)->sa_data[idx]);
                 ipaddr = (ipaddr + 256) % 256;
                 printf("%d.", ipaddr);
@@ -124,12 +86,8 @@ do_networking(void)
             printf("\n");
         }
 
-        rc = rsa_deserialize_mem_data(
-                        pRecvBuffer,
-                        &pRecvMemData
-                        );
+        rc = rsa_deserialize_mem_data(pRecvBuffer, &pRecvMemData);
         BAIL_ERROR(rc);
-
         printf("Recevied data:\n");
         printf("\tVirtAddr: %" PRIx64 "\n", pRecvMemData->unVirtAddr);
         printf("\tPageData Pointer: %p\n", pRecvMemData->pPageData);
@@ -139,10 +97,7 @@ do_networking(void)
 
         printf("Sending response\n");
 
-        rc = rsa_buffer_init_buffer(
-                        PAGESIZE + sizeof(uint64_t),
-                        &pSendBuffer
-                        );
+        rc = rsa_buffer_init_buffer(PAGESIZE + sizeof(uint64_t), &pSendBuffer);
         BAIL_ERROR(rc);
 
 #ifdef TEST
@@ -152,24 +107,12 @@ do_networking(void)
                 .unVirtAddr = 0x01020304,
                 .pPageData  = (PBYTE)dummy
             };
-
-        rc = rsa_serialize_mem_data(
-                        &mdTestMemData,
-                        pSendBuffer
-                        );
+        rc = rsa_serialize_mem_data(&mdTestMemData, pSendBuffer);
 #else
-        rc = rsa_serialize_mem_data(
-                        pSendMemData,
-                        pSendBuffer
-                        );
+        rc = rsa_serialize_mem_data(pSendMemData, pSendBuffer);
 #endif
         BAIL_ERROR(rc);
-
-        rc = rsa_buffer_write_to_socket(
-                        clientfd,
-                        pSendBuffer,
-                        &bytes_sent
-                        );
+        rc = rsa_buffer_write_to_socket(clientfd, pSendBuffer, &bytes_sent);
         BAIL_ERROR(rc);
 
         rsa_cleanup_mem_data(pRecvMemData);
@@ -182,7 +125,9 @@ do_networking(void)
         bytes_sent      = 0;
         close(clientfd);
 
-        if (death) break;
+        if (death) {
+            break;
+        }
     }
 
 
@@ -201,5 +146,7 @@ error:
 static void
 signal_handler(int sig)
 {
-        if (sig == SIGINT || sig == SIGTERM) death = 1;
+    if (sig == SIGINT || sig == SIGTERM) {
+        death = 1;
+    }
 }

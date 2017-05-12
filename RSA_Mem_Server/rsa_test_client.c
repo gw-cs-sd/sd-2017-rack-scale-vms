@@ -11,7 +11,8 @@
 
 #include "../RSApi/includes.h"
 
-int main(void)
+int
+main(void)
 {
     int rc = NO_ERROR;
     pRSA_Mem_Data pRecvMemData = NULL;
@@ -23,13 +24,8 @@ int main(void)
         };
 
     printf("INFO: Sending dummy Page Data...\n");
-
-    rc = rsa_download_more_ram(
-                    &mdSendMemData,
-                    &pRecvMemData
-                    );
+    rc = rsa_download_more_ram(&mdSendMemData, &pRecvMemData);
     BAIL_ERROR(rc);
-
     printf("INFO: Received response Page Data: ");
     printf("\tPage: %" PRIu64 "\n", pRecvMemData->unVirtAddr);
     printf("\tPageData: %s\n", (char *)pRecvMemData->pPageData);
